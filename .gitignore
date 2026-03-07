@@ -1,0 +1,6 @@
+.env
+server/.env
+.DS_Store
+server/cmd/cmd
+server/firebase-debug.log
+server/firestore-debug.log
