@@ -21,8 +21,7 @@ type FirebaseConfig struct {
 
 func Load() (*Config, error) {
 
-	// load .env if present
-	err := godotenv.Load("../.env")
+	err := godotenv.Load(".env")
 
 	cfg := &Config{
 		Env:  getEnv("ENV", "development"),

@@ -20,11 +20,7 @@ type App struct {
 }
 
 func New() *App {
-	router := loadRoutes()
-
-	return &App{
-		router: router,
-	}
+	return &App{}
 }
 
 func (a *App) Start(ctx context.Context) error {
@@ -33,7 +29,7 @@ func (a *App) Start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to load env variables: %w", err)
 	}
-	
+
 	conf := &firebase.Config{
 		ProjectID:   cfg.Firebase.ProjectID,
 		DatabaseURL: cfg.Firebase.DatabaseURL,
@@ -50,11 +46,11 @@ func (a *App) Start(ctx context.Context) error {
 	}
 
 	a.config = cfg
-	
 	a.fireDb = fireDb
+	a.router = loadRoutes(a.fireDb)
 
 	a.server = &http.Server{
-		Addr:         fmt.Sprintf(":%s",cfg.Port),
+		Addr:         fmt.Sprintf(":%s", cfg.Port),
 		Handler:      a.router,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -63,23 +59,22 @@ func (a *App) Start(ctx context.Context) error {
 	log.Println("server running on", cfg.Port)
 
 	ch := make(chan error, 1)
-	
-	go func() {	
+
+	go func() {
 		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			ch <- fmt.Errorf("failed to start server: %w", err)
 		}
-	
+
 		close(ch)
 	}()
-	
 
 	select {
-		case err = <-ch:
-			return err
-		case <-ctx.Done():
-		 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			return a.server.Shutdown(shutdownCtx)
+	case err = <-ch:
+		return err
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return a.server.Shutdown(shutdownCtx)
 	}
-	
+
 }
