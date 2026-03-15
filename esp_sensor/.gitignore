@@ -1,1 +1,3 @@
 .pio
+managed_components/
+platformio_override.ini

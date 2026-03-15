@@ -1,0 +1,59 @@
+# WiFi and Server configuration for esp_sensor
+menu "Weather Station Configuration"
+
+    menu "WiFi Configuration"
+        config WIFI_SSID
+            string "WiFi SSID"
+            default "myssid"
+            help
+                SSID (network name) for the sensor to connect to.
+
+        config WIFI_PASSWORD
+            string "WiFi Password"
+            default "mypassword"
+            help
+                WiFi password (WPA or WPA2).
+    endmenu
+
+    menu "Server Configuration"
+        config SERVER_HOST
+            string "Server hostname or IP"
+            default "192.168.1.100"
+            help
+                Hostname or IP address of the weather monitor server.
+
+        config SERVER_PORT
+            int "Server port"
+            default 8080
+            range 1 65535
+            help
+                Port of the weather monitor server.
+
+        config SERVER_PATH
+            string "API path"
+            default "/embedded/weather"
+            help
+                Path for the weather POST endpoint.
+    endmenu
+
+    config WIFI_CONNECT_TIMEOUT_MS
+        int "WiFi connection timeout (ms)"
+        default 15000
+        range 5000 60000
+        help
+            Maximum time to wait for WiFi connection before giving up.
+
+    config WIFI_MAX_RETRIES
+        int "WiFi max connection retries"
+        default 5
+        range 1 15
+        help
+            Number of retry attempts when connecting to WiFi fails.
+
+    config HTTP_TIMEOUT_MS
+        int "HTTP request timeout (ms)"
+        default 10000
+        range 2000 30000
+        help
+            Timeout for the HTTP POST request to the server.
+endmenu
