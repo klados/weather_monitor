@@ -7,16 +7,17 @@ import (
 	"net/http"
 	"time"
 
+	gofirestore "cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
-	"firebase.google.com/go/v4/db"
 	"github.com/klados/weather_monitor/internal/config"
+	"google.golang.org/api/option"
 )
 
 type App struct {
-	router http.Handler
-	fireDb *db.Client
-	server *http.Server
-	config *config.Config
+	router    http.Handler
+	fireStore *gofirestore.Client
+	server    *http.Server
+	config    *config.Config
 }
 
 func New() *App {
@@ -30,24 +31,24 @@ func (a *App) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to load env variables: %w", err)
 	}
 
-	conf := &firebase.Config{
-		ProjectID:   cfg.Firebase.ProjectID,
-		DatabaseURL: cfg.Firebase.DatabaseURL,
+	opt := option.WithCredentialsFile(cfg.Firebase.CredentialsFile)
+	fbConfig := &firebase.Config{
+		ProjectID: cfg.Firebase.ProjectID,
 	}
 
-	app, err := firebase.NewApp(ctx, conf)
+	app, err := firebase.NewApp(context.Background(), fbConfig, opt)
 	if err != nil {
-		return fmt.Errorf("failed to initialize firebase: %w", err)
+		return fmt.Errorf("error initializing firebase app: %v", err)
 	}
 
-	fireDb, err := app.Database(ctx)
+	fireStore, err := app.Firestore(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to initialize database: %w", err)
+		return fmt.Errorf("failed to initialize firestore: %w", err)
 	}
 
 	a.config = cfg
-	a.fireDb = fireDb
-	a.router = loadRoutes(a.fireDb)
+	a.fireStore = fireStore
+	a.router = loadRoutes(a.fireStore)
 
 	a.server = &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Port),

@@ -3,13 +3,15 @@ package application
 import (
 	"net/http"
 
-	"firebase.google.com/go/v4/db"
+	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/klados/weather_monitor/handler"
+	"github.com/klados/weather_monitor/internal/repository"
+	"github.com/klados/weather_monitor/internal/server"
 )
 
-func loadRoutes(fireDb *db.Client) *chi.Mux {
+func loadRoutes(fireDb *firestore.Client) *chi.Mux {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Logger)
@@ -29,14 +31,16 @@ func loadRoutes(fireDb *db.Client) *chi.Mux {
 	return router
 }
 
-func loadApiRoutes(router chi.Router, fireDb *db.Client) {
-	weatherHandler := &handler.Weather{DB: fireDb}
+func loadApiRoutes(router chi.Router, fireStore *firestore.Client) {
+	weatherHandler := &handler.Weather{DB: fireStore}
 
 	router.Get("/now", weatherHandler.WeatherNow)
 }
 
-func loadEmbeddedRoutes(router chi.Router, fireDb *db.Client) {
-	sensorHandler := &handler.SensorReceiver{DB: fireDb}
+func loadEmbeddedRoutes(router chi.Router, fireStore *firestore.Client) {
+	weatherRepo := repository.NewWeatherRepository(fireStore)
+	weatherService := server.NewWeatherService(weatherRepo)
+	sensorHandler := &handler.SensorReceiver{Service: weatherService}
 
 	router.Post("/weather", sensorHandler.SensorData)
 }

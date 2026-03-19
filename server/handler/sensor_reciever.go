@@ -1,23 +1,32 @@
 package handler
 
 import (
-	"fmt"
-	"io"
+	"encoding/json"
 	"net/http"
 
-	"firebase.google.com/go/v4/db"
+	"github.com/klados/weather_monitor/internal/model"
+	"github.com/klados/weather_monitor/internal/server"
 )
 
 type SensorReceiver struct {
-	DB *db.Client
+	Service *server.WeatherService
 }
 
 func (sr *SensorReceiver) SensorData(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "failed to read request body", http.StatusBadRequest)
+	sensorName := "nippos" // ToDo retrieve it via auth
+
+	var payload model.SensorWeather
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println("received sensor data:", string(body))
+	if err := sr.Service.SaveSensorWeather(r.Context(), sensorName, payload); err != nil {
+		http.Error(w, "failed to save weather data", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte("weather data saved"))
 }

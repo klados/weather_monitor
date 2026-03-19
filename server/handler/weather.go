@@ -3,11 +3,11 @@ package handler
 import (
 	"net/http"
 
-	"firebase.google.com/go/v4/db"
+	"cloud.google.com/go/firestore"
 )
 
 type Weather struct {
-	DB *db.Client
+	DB *firestore.Client
 }
 
 func (we *Weather) WeatherNow(w http.ResponseWriter, r *http.Request) {

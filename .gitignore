@@ -4,3 +4,4 @@ server/.env
 server/cmd/cmd
 server/firebase-debug.log
 server/firestore-debug.log
+server/iot-weather-43917-firebase-adminsdk-fbsvc-1b61ee60f2.json
