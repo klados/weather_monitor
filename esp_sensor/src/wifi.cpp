@@ -10,7 +10,9 @@
 #include "nvs_flash.h"
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 
+#include "mbedtls/md.h"
 #include "sdkconfig.h"
 
 static constexpr const char *TAG = "wifi";
@@ -20,6 +22,53 @@ static constexpr const char *TAG = "wifi";
 
 static EventGroupHandle_t s_wifi_event_group;
 static int s_retry_num = 0;
+
+static bool compute_hmac_sha256_hex(const char *key,
+                                    const char *device_id,
+                                    const char *timestamp,
+                                    const uint8_t *body,
+                                    size_t body_len,
+                                    char *out_hex,
+                                    size_t out_hex_size) {
+
+    if (!key || !device_id || !timestamp || !body || !out_hex || out_hex_size < 65) {
+        return false;
+    }
+
+    const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    if (!md_info) {
+        return false;
+    }
+
+    unsigned char hmac[32];
+    mbedtls_md_context_t ctx;
+    mbedtls_md_init(&ctx);
+
+    const int rc = mbedtls_md_setup(&ctx, md_info, 1);
+    if (rc != 0) {
+        mbedtls_md_free(&ctx);
+        return false;
+    }
+
+    if (mbedtls_md_hmac_starts(&ctx,reinterpret_cast<const unsigned char *>(key),std::strlen(key)) != 0 ||
+        mbedtls_md_hmac_update(&ctx,reinterpret_cast<const unsigned char *>(device_id),std::strlen(device_id)) != 0 ||
+        mbedtls_md_hmac_update(&ctx,reinterpret_cast<const unsigned char *>(timestamp),std::strlen(timestamp)) != 0 ||
+        mbedtls_md_hmac_update(&ctx, body, body_len) != 0 ||
+        mbedtls_md_hmac_finish(&ctx, hmac) != 0) {
+
+            mbedtls_md_free(&ctx);
+            return false;
+        }
+
+
+    mbedtls_md_free(&ctx);
+
+    for (size_t i = 0; i < sizeof(hmac); ++i) {
+        std::snprintf(out_hex + (i * 2), out_hex_size - (i * 2), "%02x", hmac[i]);
+    }
+    out_hex[64] = '\0';
+    return true;
+}
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,
                                int32_t event_id, void *event_data) {
@@ -121,6 +170,25 @@ bool wifi_post_sensor_data(float temperature_c, float humidity_percent) {
         return false;
     }
 
+    char device_id[33];
+    std::snprintf(device_id, sizeof(device_id), "%s", CONFIG_DEVICE_ID);
+
+    char timestamp_hex[17];
+    const auto now = static_cast<long long>(std::time(nullptr));
+    std::snprintf(timestamp_hex, sizeof(timestamp_hex), "%lld", now);
+
+    char signature_hex[65];
+    if (!compute_hmac_sha256_hex(CONFIG_SERVER_HMAC_SECRET,
+                                 device_id,
+                                 timestamp_hex,
+                                 reinterpret_cast<const uint8_t *>(post_data),
+                                 static_cast<size_t>(len),
+                                 signature_hex,
+                                 sizeof(signature_hex))) {
+        ESP_LOGE(TAG, "Failed to compute HMAC");
+        return false;
+                                 }
+
     char url[128];
     const int url_len = snprintf(url, sizeof(url), "http://%s:%d%s",
                                  CONFIG_SERVER_HOST, CONFIG_SERVER_PORT, CONFIG_SERVER_PATH);
@@ -142,6 +210,10 @@ bool wifi_post_sensor_data(float temperature_c, float humidity_percent) {
     }
 
     esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_header(client, "X-Signature", signature_hex);
+    esp_http_client_set_header(client, "X-Timestamp", timestamp_hex);
+    esp_http_client_set_header(client, "X-Device-ID", device_id);
+
     esp_http_client_set_post_field(client, post_data, len);
 
     const esp_err_t err = esp_http_client_perform(client);
