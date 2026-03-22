@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 #include "wifi.h"
 #include <cmath>
+#include "sync_time.h"
 
 static constexpr const char *TAG = "weather_station";
 static constexpr gpio_num_t DHT_GPIO = GPIO_NUM_18;
@@ -56,6 +57,7 @@ extern "C" void app_main(void) {
         ESP_LOGI(TAG, "Temperature: %.1f C, Humidity: %.1f %%", temperature_c, humidity_percent);
 
         if (wifi_connect()) {
+            sync_time_with_sntp();
             if (wifi_post_sensor_data(temperature_c, humidity_percent)) {
                 ESP_LOGI(TAG, "Sensor data sent successfully");
             } else {
