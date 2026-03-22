@@ -9,6 +9,7 @@ import (
 	"github.com/klados/weather_monitor/handler"
 	"github.com/klados/weather_monitor/internal/repository"
 	"github.com/klados/weather_monitor/internal/server"
+	appmiddleware "github.com/klados/weather_monitor/middleware"
 )
 
 func loadRoutes(fireDb *firestore.Client) *chi.Mux {
@@ -42,5 +43,5 @@ func loadEmbeddedRoutes(router chi.Router, fireStore *firestore.Client) {
 	weatherService := server.NewWeatherService(weatherRepo)
 	sensorHandler := &handler.SensorReceiver{Service: weatherService}
 
-	router.Post("/weather", sensorHandler.SensorData)
+	router.With(appmiddleware.HmacMiddleware(fireStore)).Post("/weather", sensorHandler.SensorData)
 }

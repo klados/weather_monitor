@@ -13,7 +13,11 @@ type SensorReceiver struct {
 }
 
 func (sr *SensorReceiver) SensorData(w http.ResponseWriter, r *http.Request) {
-	sensorName := "nippos" // ToDo retrieve it via auth
+	sensorName := r.Header.Get("X-Device-Id")
+	if sensorName == "" {
+		http.Error(w, "missing X-Device-Id header", http.StatusBadRequest)
+		return
+	}
 
 	var payload model.SensorWeather
 
