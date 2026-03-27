@@ -37,16 +37,16 @@ function App() {
     };
 
     return (
-      <>
-          <nav className="p-4 border-b border-gray-300 mb-4 flex justify-between items-center bg-white shadow-sm">
+      <div className="min-h-screen bg-[#313338] text-[#dbdee1] font-sans">
+          <nav className="p-4 mb-4 flex justify-between items-center bg-[#1e1f22] shadow-sm">
               <ul className="flex gap-4 list-none m-0 p-0">
                   <li>
-                      <Link to="/" className="text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                      <Link to="/" className="text-[#dbdee1] hover:text-white font-medium transition-colors">
                           {t('HomePage')}
                       </Link>
                   </li>
                   <li>
-                      <Link to="/about" className="text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                      <Link to="/about" className="text-[#dbdee1] hover:text-white font-medium transition-colors">
                           {t('AboutPage')}
                       </Link>
                   </li>
@@ -54,24 +54,23 @@ function App() {
               <div className="flex gap-2">
                   <button
                       onClick={() => changeLanguage('en')}
-                      className={`px-3 py-1 text-sm font-semibold rounded transition-colors ${i18n.language === 'en' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                      className={`px-3 py-1 text-sm font-medium rounded transition-colors ${i18n.language === 'en' ? 'bg-[#5865F2] text-white' : 'bg-[#2b2d31] text-[#dbdee1] hover:bg-[#3f4147]'}`}
                   >
                       EN
                   </button>
                   <button
                       onClick={() => changeLanguage('el')}
-                      className={`px-3 py-1 text-sm font-semibold rounded transition-colors ${i18n.language === 'el' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                      className={`px-3 py-1 text-sm font-medium rounded transition-colors ${i18n.language === 'el' ? 'bg-[#5865F2] text-white' : 'bg-[#2b2d31] text-[#dbdee1] hover:bg-[#3f4147]'}`}
                   >
                       ΕΛ
                   </button>
               </div>
           </nav>
 
-
-          <main>
+          <main className="p-4">
               <Outlet />
           </main>
-      </>
+      </div>
   )
 }
 

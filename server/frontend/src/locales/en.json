@@ -1,4 +1,10 @@
 {
   "HomePage": "Home",
-  "AboutPage": "About"
+  "AboutPage": "About",
+  "Temperature": "Temperature",
+  "Humidity": "Humidity",
+  "Both": "Both",
+  "Temp": "Temp",
+  "Hum": "Hum",
+  "Historical Data": "Historical Data"
 }

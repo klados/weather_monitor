@@ -1,4 +1,10 @@
 {
   "HomePage": "Αρχική",
-  "AboutPage": "Σχετικά"
+  "AboutPage": "Σχετικά",
+  "Temperature": "Θερμοκρασία",
+  "Humidity": "Υγρασία",
+  "Both": "Όλα",
+  "Temp": "Θερμοκρασία",
+  "Hum": "Υγρασία",
+  "Historical Data": "Ιστορικά δεδομένα"
 }
