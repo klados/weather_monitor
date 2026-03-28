@@ -14,7 +14,28 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-func loadRoutes(fireDb *firestore.Client) *chi.Mux {
+// corsMiddleware handles CORS headers and preflight requests
+func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Set the allowed origin from config
+			w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Device-Id")
+
+			// Handle preflight OPTIONS requests
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			// Proceed to the next handler
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func loadRoutes(fireDb *firestore.Client, allowedOrigin string) *chi.Mux {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Logger)
@@ -24,6 +45,11 @@ func loadRoutes(fireDb *firestore.Client) *chi.Mux {
 	})
 
 	router.Route("/api", func(r chi.Router) {
+		r.Use(corsMiddleware(allowedOrigin))
+
+		// Catch-all route for OPTIONS requests to ensure the CORS middleware is triggered
+		r.Options("/*", func(w http.ResponseWriter, r *http.Request) {})
+
 		loadApiRoutes(r, fireDb)
 	})
 

@@ -5,6 +5,8 @@ import {Home} from "./pages/Home.tsx";
 import About from "./pages/About.tsx";
 import App from './App.tsx';
 
+document.title = import.meta.env.VITE_LOCATION_NAME || 'Weather';
+
 createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
         <Routes>

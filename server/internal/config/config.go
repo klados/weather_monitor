@@ -11,7 +11,8 @@ type Config struct {
 	Env  string
 	Port string
 
-	Firebase FirebaseConfig
+	AllowedOrigin string
+	Firebase      FirebaseConfig
 }
 
 type FirebaseConfig struct {
@@ -28,8 +29,9 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Env:  getEnv("ENV", "development"),
-		Port: getEnv("APP_PORT", "3000"),
+		Env:           getEnv("ENV", "development"),
+		Port:          getEnv("APP_PORT", "3000"),
+		AllowedOrigin: getEnv("ALLOWED_ORIGIN", "http://localhost:5173"),
 
 		Firebase: FirebaseConfig{
 			ProjectID:       getEnv("FIREBASE_PROJECT_ID", ""),

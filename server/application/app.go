@@ -48,7 +48,7 @@ func (a *App) Start(ctx context.Context) error {
 
 	a.config = cfg
 	a.fireStore = fireStore
-	a.router = loadRoutes(a.fireStore)
+	a.router = loadRoutes(a.fireStore, cfg.AllowedOrigin)
 
 	a.server = &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Port),
