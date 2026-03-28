@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/klados/weather_monitor/internal/model"
@@ -33,4 +34,30 @@ func (r *WeatherRepository) SaveSensorWeather(ctx context.Context, sensorName st
 	}
 
 	return nil
+}
+
+func (r *WeatherRepository) GetWeatherDataSpecificRange(ctx context.Context, sensorName string, timeRange time.Duration) ([]model.SensorWeather, error) {
+	startTime := time.Now().Add(-timeRange)
+
+	iter := r.DB.Collection(weatherCollectionName).Doc(sensorName).Collection(tempHumCollectionName).
+		Where("RecordedAt", ">=", startTime).
+		//Limit(10).
+		OrderBy("RecordedAt", firestore.Desc).
+		Documents(ctx)
+
+	docs, err := iter.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get weather data: %w", err)
+	}
+
+	var weatherData []model.SensorWeather
+	for _, doc := range docs {
+		var data model.SensorWeather
+		if err := doc.DataTo(&data); err != nil {
+			return nil, fmt.Errorf("failed to decode weather data: %w", err)
+		}
+		weatherData = append(weatherData, data)
+	}
+
+	return weatherData, nil
 }

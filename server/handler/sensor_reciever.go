@@ -5,11 +5,11 @@ import (
 	"net/http"
 
 	"github.com/klados/weather_monitor/internal/model"
-	"github.com/klados/weather_monitor/internal/server"
+	"github.com/klados/weather_monitor/internal/service"
 )
 
 type SensorReceiver struct {
-	Service *server.WeatherService
+	Service *service.WeatherService
 }
 
 func (sr *SensorReceiver) SensorData(w http.ResponseWriter, r *http.Request) {

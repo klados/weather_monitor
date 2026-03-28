@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/klados/weather_monitor/handler"
 	"github.com/klados/weather_monitor/internal/repository"
-	"github.com/klados/weather_monitor/internal/server"
+	"github.com/klados/weather_monitor/internal/service"
 	appmiddleware "github.com/klados/weather_monitor/middleware"
 )
 
@@ -33,14 +33,20 @@ func loadRoutes(fireDb *firestore.Client) *chi.Mux {
 }
 
 func loadApiRoutes(router chi.Router, fireStore *firestore.Client) {
-	weatherHandler := &handler.Weather{DB: fireStore}
+	weatherRepo := repository.NewWeatherRepository(fireStore)
+	weatherService := service.NewWeatherService(weatherRepo)
+
+	weatherHandler := &handler.Weather{
+		DB:             fireStore,
+		WeatherService: *weatherService,
+	}
 
 	router.Get("/now", weatherHandler.WeatherNow)
 }
 
 func loadEmbeddedRoutes(router chi.Router, fireStore *firestore.Client) {
 	weatherRepo := repository.NewWeatherRepository(fireStore)
-	weatherService := server.NewWeatherService(weatherRepo)
+	weatherService := service.NewWeatherService(weatherRepo)
 	sensorHandler := &handler.SensorReceiver{Service: weatherService}
 
 	router.With(appmiddleware.HmacMiddleware(fireStore)).Post("/weather", sensorHandler.SensorData)
