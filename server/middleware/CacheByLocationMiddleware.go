@@ -29,7 +29,8 @@ func (rr *responseRecorder) Write(b []byte) (int, error) {
 func CacheByLocationMiddleware(c *cache.Cache, duration time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			location := r.Header.Get("location")
+			//location := r.Header.Get("location")
+			location := r.URL.Query().Get("location")
 
 			// If there's no location header, skip caching and proceed to the handler
 			if location == "" {
@@ -42,6 +43,7 @@ func CacheByLocationMiddleware(c *cache.Cache, duration time.Duration) func(http
 			// Check if we have a cached response for this location
 			if cachedResponse, found := c.Get(cacheKey); found {
 				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("X-Cache", "HIT")
 				w.WriteHeader(http.StatusOK)
 				w.Write(cachedResponse.([]byte))
 				return
@@ -53,6 +55,9 @@ func CacheByLocationMiddleware(c *cache.Cache, duration time.Duration) func(http
 				status:         http.StatusOK, // Default to 200 OK
 				body:           bytes.NewBuffer(nil),
 			}
+
+			// Set cache MISS header before calling the handler
+			recorder.Header().Set("X-Cache", "MISS")
 
 			// Call the actual handler
 			next.ServeHTTP(recorder, r)

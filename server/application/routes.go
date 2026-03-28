@@ -22,6 +22,7 @@ func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Device-Id")
+			w.Header().Set("Access-Control-Expose-Headers", "X-Cache")
 
 			// Handle preflight OPTIONS requests
 			if r.Method == "OPTIONS" {
