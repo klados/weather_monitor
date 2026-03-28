@@ -29,7 +29,6 @@ func (rr *responseRecorder) Write(b []byte) (int, error) {
 func CacheByLocationMiddleware(c *cache.Cache, duration time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			//location := r.Header.Get("location")
 			location := r.URL.Query().Get("location")
 
 			// If there's no location header, skip caching and proceed to the handler
@@ -38,7 +37,22 @@ func CacheByLocationMiddleware(c *cache.Cache, duration time.Duration) func(http
 				return
 			}
 
-			cacheKey := "weather_" + location
+			// Build cache key based on URL path and query parameters
+			var cacheKey string
+			if r.URL.Path == "/api/now" {
+				cacheKey = "weather_now_" + location
+			} else if r.URL.Path == "/api/historicData" {
+				timespan := r.URL.Query().Get("timespanInDays")
+				if timespan == "" {
+					// If timespan is missing for historicData, skip caching
+					next.ServeHTTP(w, r)
+					return
+				}
+				cacheKey = "weather_historicData_" + location + "_" + timespan
+			} else {
+				// For any other path, use a generic key
+				cacheKey = "weather_" + location
+			}
 
 			// Check if we have a cached response for this location
 			if cachedResponse, found := c.Get(cacheKey); found {

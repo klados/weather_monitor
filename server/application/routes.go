@@ -76,6 +76,7 @@ func loadApiRoutes(router chi.Router, fireStore *firestore.Client) {
 
 	router.With(appmiddleware.CacheByLocationMiddleware(memCache, 5*time.Minute)).Get("/now", weatherHandler.WeatherNow)
 
+	router.With(appmiddleware.CacheByLocationMiddleware(memCache, 5*time.Minute)).Get("/historicalData", weatherHandler.HistoricalWeather)
 }
 
 func loadEmbeddedRoutes(router chi.Router, fireStore *firestore.Client) {

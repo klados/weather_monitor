@@ -31,6 +31,20 @@ func (s *WeatherService) SaveSensorWeather(ctx context.Context, sensorName strin
 	return nil
 }
 
+func (s *WeatherService) GetHistoricalWeatherData(ctx context.Context, sensorName string, timespanInDays uint) ([]model.SensorWeather, error) {
+	weatherData, err := s.repo.GetWeatherDataSpecificRange(ctx, sensorName, time.Duration(timespanInDays*24)*time.Hour)
+
+	if err != nil {
+		return []model.SensorWeather{}, fmt.Errorf("weather service: %w", err)
+	}
+
+	if len(weatherData) == 0 {
+		return []model.SensorWeather{}, fmt.Errorf("weather service: no data found for sensor %s", sensorName)
+	}
+
+	return weatherData, nil
+}
+
 func (s *WeatherService) GetWeatherLastHour(ctx context.Context, sensorName string) (model.SensorWeather, error) {
 	weatherData, err := s.repo.GetWeatherDataSpecificRange(ctx, sensorName, time.Hour)
 
