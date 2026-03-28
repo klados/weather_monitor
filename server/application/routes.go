@@ -2,6 +2,7 @@ package application
 
 import (
 	"net/http"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
@@ -10,6 +11,7 @@ import (
 	"github.com/klados/weather_monitor/internal/repository"
 	"github.com/klados/weather_monitor/internal/service"
 	appmiddleware "github.com/klados/weather_monitor/middleware"
+	"github.com/patrickmn/go-cache"
 )
 
 func loadRoutes(fireDb *firestore.Client) *chi.Mux {
@@ -41,7 +43,12 @@ func loadApiRoutes(router chi.Router, fireStore *firestore.Client) {
 		WeatherService: *weatherService,
 	}
 
-	router.Get("/now", weatherHandler.WeatherNow)
+	// Create a cache with a default expiration time of 5 minutes, and which
+	// purges expired items every 10 minutes
+	memCache := cache.New(5*time.Minute, 10*time.Minute)
+
+	router.With(appmiddleware.CacheByLocationMiddleware(memCache, 5*time.Minute)).Get("/now", weatherHandler.WeatherNow)
+
 }
 
 func loadEmbeddedRoutes(router chi.Router, fireStore *firestore.Client) {

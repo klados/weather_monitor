@@ -37,12 +37,11 @@ func (r *WeatherRepository) SaveSensorWeather(ctx context.Context, sensorName st
 }
 
 func (r *WeatherRepository) GetWeatherDataSpecificRange(ctx context.Context, sensorName string, timeRange time.Duration) ([]model.SensorWeather, error) {
-	startTime := time.Now().Add(-timeRange)
+	startTime := time.Now().UTC().Add(-timeRange)
 
 	iter := r.DB.Collection(weatherCollectionName).Doc(sensorName).Collection(tempHumCollectionName).
-		Where("RecordedAt", ">=", startTime).
-		//Limit(10).
-		OrderBy("RecordedAt", firestore.Desc).
+		Where("recorded_at", ">=", startTime).
+		OrderBy("recorded_at", firestore.Desc).
 		Documents(ctx)
 
 	docs, err := iter.GetAll()
