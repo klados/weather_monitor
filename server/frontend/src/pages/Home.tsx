@@ -2,6 +2,7 @@ import StatCard from "../components/StatCard.tsx";
 import {useEffect, useState} from "react";
 import {useTranslation} from "react-i18next";
 import ToggleGroup from "../components/ToggleGroup.tsx";
+import {LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer} from 'recharts';
 
 interface WeatherData {
     temperature: number;
@@ -23,7 +24,9 @@ export function Home() {
     const locationName:string = import.meta.env.VITE_LOCATION_NAME || "Unknown Location";
     const locationCode: string = import.meta.env.VITE_LOCATION_CODE || "";
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+    const [historicalData, setHistoricalData] = useState<WeatherData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [historicalLoading, setHistoricalLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -50,11 +53,48 @@ export function Home() {
 
         // Call immediately on mount
         fetchWeatherData();
-        
+
         const interval = setInterval(fetchWeatherData, 5*60000);
 
         return () => clearInterval(interval);
     }, [locationCode]);
+
+
+    useEffect(() => {
+        const fetchHistoricalData = async () => {
+            try {
+                setHistoricalLoading(true);
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5173';
+                const timespanInDays = view === "24h" ? 1 : 7;
+                const response = await fetch(`${apiUrl}/api/historicalData?location=${encodeURIComponent(locationCode)}&timespanInDays=${timespanInDays}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                setHistoricalData(data);
+            } catch (err) {
+                console.error('Error fetching historical data:', err);
+            } finally {
+                setHistoricalLoading(false);
+            }
+        };
+
+        fetchHistoricalData();
+    }, [locationCode, view]);
+
+    const chartData = historicalData.map(item => ({
+        time: new Date(item.recorded_at).toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }),
+        temperature: unit === "C" ? item.temperature : toF(item.temperature),
+        humidity: item.humidity
+    }));
+
 
     return (
         <div className="relative overflow-x-hidden">
@@ -100,6 +140,53 @@ export function Home() {
                         />
                     </div>
                 </div>
+
+                {historicalLoading ? (
+                    <div className="h-80 flex items-center justify-center text-[#949ba4]">
+                        {t("Loading...")}
+                    </div>
+                ) : (
+                    <ResponsiveContainer width="100%" height={320}>
+                        <LineChart data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#40444b" />
+                            <XAxis
+                                dataKey="time"
+                                stroke="#949ba4"
+                                tick={{fill: '#949ba4', fontSize: 12}}
+                            />
+                            <YAxis stroke="#949ba4" tick={{fill: '#949ba4', fontSize: 12}} />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#1e1f22',
+                                    border: '1px solid #40444b',
+                                    borderRadius: '8px',
+                                    color: '#f2f3f5'
+                                }}
+                            />
+                            <Legend wrapperStyle={{color: '#f2f3f5'}} />
+                            {(metric === "both" || metric === "temp") && (
+                                <Line
+                                    type="monotone"
+                                    dataKey="temperature"
+                                    stroke="#ed4245"
+                                    name={`${t("Temperature")} (${tempUnit})`}
+                                    strokeWidth={2}
+                                    dot={false}
+                                />
+                            )}
+                            {(metric === "both" || metric === "humidity") && (
+                                <Line
+                                    type="monotone"
+                                    dataKey="humidity"
+                                    stroke="#5865f2"
+                                    name={`${t("Humidity")} (%)`}
+                                    strokeWidth={2}
+                                    dot={false}
+                                />
+                            )}
+                        </LineChart>
+                    </ResponsiveContainer>
+                )}
             </div>
 
         </div>
