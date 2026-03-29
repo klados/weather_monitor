@@ -58,6 +58,9 @@ func loadRoutes(fireDb *firestore.Client, allowedOrigin string) *chi.Mux {
 		loadEmbeddedRoutes(r, fireDb)
 	})
 
+	// Serve static files in production
+	loadStaticRoutes(router)
+
 	return router
 }
 
@@ -85,4 +88,21 @@ func loadEmbeddedRoutes(router chi.Router, fireStore *firestore.Client) {
 	sensorHandler := &handler.SensorReceiver{Service: weatherService}
 
 	router.With(appmiddleware.HmacMiddleware(fireStore)).Post("/weather", sensorHandler.SensorData)
+}
+
+func loadStaticRoutes(router *chi.Mux) {
+	// Serve static assets from the React build
+	staticDir := "./frontend/dist"
+
+	// Serve static files (CSS, JS, images, etc.)
+	fileServer := http.FileServer(http.Dir(staticDir))
+
+	router.Handle("/assets/*", fileServer)
+	router.Handle("/favicon.ico", fileServer)
+	router.Handle("/robots.txt", fileServer)
+
+	// Serve index.html for all other routes (SPA support)
+	router.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, staticDir+"/index.html")
+	})
 }
