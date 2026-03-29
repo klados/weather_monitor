@@ -1,0 +1,89 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      # Defaults work when secrets are unset; override via repo secrets if needed.
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }} # /opt/weather_monitor
+      SYSTEMD_SERVICE: ${{ secrets.SYSTEMD_SERVICE }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: server/frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: ./server/frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build Go backend
+        working-directory: ./server
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: |
+          go mod download
+          go build -trimpath -ldflags="-s -w" -o weather_monitor ./cmd
+
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          set -euo pipefail
+
+          for var in SSH_PRIVATE_KEY SERVER_HOST SERVER_USER; do
+            if [ -z "${!var:-}" ]; then
+              echo "Missing required secret: $var" >&2
+              exit 1
+            fi
+          done
+
+          TARGET="${DEPLOY_PATH:-/opt/weather_monitor}"
+          SERVICE="${SYSTEMD_SERVICE:-weather-monitor}"
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh-keyscan -H "$SERVER_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          SSH=(ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$SERVER_USER@$SERVER_HOST")
+          RSYNC=(rsync -avz --delete -e "ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes")
+
+          "${SSH[@]}" "mkdir -p '$TARGET/frontend/dist'"
+
+          "${RSYNC[@]}" ./server/frontend/dist/ "$SERVER_USER@$SERVER_HOST:$TARGET/frontend/dist/"
+          scp -i ~/.ssh/deploy_key -o IdentitiesOnly=yes ./server/weather_monitor "$SERVER_USER@$SERVER_HOST:$TARGET/weather_monitor.new"
+          "${SSH[@]}" "mv '$TARGET/weather_monitor.new' '$TARGET/weather_monitor' && chmod +x '$TARGET/weather_monitor' && sudo systemctl restart '$SERVICE'"
