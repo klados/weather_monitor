@@ -33,7 +33,7 @@ export function Home() {
         const fetchWeatherData = async () => {
             try {
                 setLoading(true);
-                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5173';
+                const apiUrl = import.meta.env.VITE_API_URL || '';
                 const response = await fetch(`${apiUrl}/api/now?location=${encodeURIComponent(locationCode)}`);
 
                 if (!response.ok) {
@@ -64,7 +64,7 @@ export function Home() {
         const fetchHistoricalData = async () => {
             try {
                 setHistoricalLoading(true);
-                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5173';
+                const apiUrl = import.meta.env.VITE_API_URL || '';
                 const timespanInDays = view === "24h" ? 1 : 7;
                 const response = await fetch(`${apiUrl}/api/historicalData?location=${encodeURIComponent(locationCode)}&timespanInDays=${timespanInDays}`);
 
