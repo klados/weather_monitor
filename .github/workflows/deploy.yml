@@ -40,6 +40,10 @@ jobs:
 
       - name: Build frontend
         working-directory: ./server/frontend
+        env:
+          VITE_LOCATION_NAME: ${{ vars.VITE_LOCATION_NAME }}
+          VITE_LOCATION_CODE: ${{ vars.VITE_LOCATION_CODE }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
         run: |
           npm ci
           npm run build
@@ -53,6 +57,16 @@ jobs:
         run: |
           go mod download
           go build -trimpath -ldflags="-s -w" -o weather_monitor ./cmd
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          ENV=${{ vars.ENV }}
+          APP_PORT=${{ vars.APP_PORT }}
+          ALLOWED_ORIGIN=${{ vars.ALLOWED_ORIGIN }}
+          FIREBASE_PROJECT_ID=${{ vars.FIREBASE_PROJECT_ID }}
+          FIREBASE_CREDENTIALS_FILE=${{ vars.FIREBASE_CREDENTIALS_FILE }}
+          EOF
 
       - name: Deploy to server
         env:
@@ -85,5 +99,6 @@ jobs:
           "${SSH[@]}" "mkdir -p '$TARGET/frontend/dist'"
 
           "${RSYNC[@]}" ./server/frontend/dist/ "$SERVER_USER@$SERVER_HOST:$TARGET/frontend/dist/"
+          scp -i ~/.ssh/deploy_key -o IdentitiesOnly=yes .env "$SERVER_USER@$SERVER_HOST:$TARGET/.env"
           scp -i ~/.ssh/deploy_key -o IdentitiesOnly=yes ./server/weather_monitor "$SERVER_USER@$SERVER_HOST:$TARGET/weather_monitor.new"
-          "${SSH[@]}" "mv '$TARGET/weather_monitor.new' '$TARGET/weather_monitor' && chmod +x '$TARGET/weather_monitor' && sudo systemctl restart '$SERVICE'"
+          "${SSH[@]}" "mv '$TARGET/weather_monitor.new' '$TARGET/weather_monitor' && chmod +x '$TARGET/weather_monitor' && chmod 600 '$TARGET/.env' && sudo systemctl restart '$SERVICE'"

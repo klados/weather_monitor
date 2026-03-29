@@ -22,9 +22,11 @@ type FirebaseConfig struct {
 
 func Load() (*Config, error) {
 
-	// Try to load .env file, but don't fail if it doesn't exist
-	// This allows the app to work with environment variables only
-	_ = godotenv.Load(".env")
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		return nil, err
+	}
 
 	cfg := &Config{
 		Env:           getEnv("ENV", "development"),
