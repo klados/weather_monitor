@@ -57,11 +57,14 @@ extern "C" void app_main(void) {
         ESP_LOGI(TAG, "Temperature: %.1f C, Humidity: %.1f %%", temperature_c, humidity_percent);
 
         if (wifi_connect()) {
-            sync_time_with_sntp();
-            if (wifi_post_sensor_data(temperature_c, humidity_percent)) {
-                ESP_LOGI(TAG, "Sensor data sent successfully");
+            if (sync_time_with_sntp()) {
+                if (wifi_post_sensor_data(temperature_c, humidity_percent)) {
+                    ESP_LOGI(TAG, "Sensor data sent successfully");
+                } else {
+                    ESP_LOGW(TAG, "Failed to send sensor data to server");
+                }
             } else {
-                ESP_LOGW(TAG, "Failed to send sensor data to server");
+                ESP_LOGW(TAG, "Time sync failed, skipping upload");
             }
             wifi_disconnect();
         } else {

@@ -4,7 +4,7 @@
 
 static constexpr const char *TAG = "time";
 
-void sync_time_with_sntp() {
+bool sync_time_with_sntp() {
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
     sntp_setservername(0, "pool.ntp.org");
     sntp_init();
@@ -20,11 +20,12 @@ void sync_time_with_sntp() {
         localtime_r(&now, &timeinfo);
         if (timeinfo.tm_year >= (2020 - 1900)) {
             ESP_LOGI(TAG, "Time synchronized: %lld", static_cast<long long>(now));
-            return;
+            return true;
         }
         vTaskDelay(pdMS_TO_TICKS(1000));
         ++retry;
     }
 
     ESP_LOGW(TAG, "SNTP sync timed out");
+    return false;
 }
